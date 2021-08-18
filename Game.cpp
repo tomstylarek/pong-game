@@ -1,6 +1,6 @@
 #include "Game.h"
 
-Game::Game() : window(nullptr), isRunning(true) {}
+Game::Game() : window(nullptr), renderer(nullptr), isRunning(true) {}
 
 // returns true if initialization of SDL and window creation is successful
 bool Game::initialize() {
@@ -30,11 +30,25 @@ bool Game::initialize() {
 		return false;
 	}
 
+	// creation of renderer for 2D graphics
+	this->renderer = SDL_CreateRenderer(
+		this->window, // window to create renderer for
+		-1, // rendering driver to initialize. -1 for initializing the first one that supports the flags
+		SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC // sdl renderer flags
+	);
+
+	// if the renderer fails to initialize
+	if (!this->renderer) {
+		SDL_Log('Failed to create renderer: %s', SDL_GetError());
+		return false;
+	}
+
 	return true;
 }
 
 void Game::shutDown() {
 	SDL_DestroyWindow(this->window);
+	SDL_DestroyRenderer(this->renderer);
 	SDL_Quit();
 }
 
