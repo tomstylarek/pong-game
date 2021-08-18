@@ -16,9 +16,10 @@ private:
 	bool isRunning;
 	Vector2 ballPosition;
 	Vector2 paddlePosition;
+	Uint32 ticksCount;
 
 	void processInput();
-	void updateGame() {};
+	void updateGame();
 	void generateOutput();
 
 public:

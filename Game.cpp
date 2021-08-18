@@ -1,6 +1,6 @@
 #include "Game.h"
 
-Game::Game() : window(nullptr), renderer(nullptr), isRunning(true) {
+Game::Game() : window(nullptr), renderer(nullptr), isRunning(true), ticksCount(0) {
 	ballPosition.x = 1024 / 2;
 	ballPosition.y = 300;
 	paddlePosition.x = 15; // a bit to the right
@@ -110,10 +110,10 @@ void Game::generateOutput() {
 	// first, set the renderer draw color
 	SDL_SetRenderDrawColor(
 		this->renderer,
-		0, // R
-		0, // G
-		255, // B
-		255 // A - A blue color with full opacity
+		70, // R
+		70, // G
+		70, // B
+		255 // A
 	);
 
 	// clear the back buffer to the current draw color
@@ -125,9 +125,9 @@ void Game::generateOutput() {
 	// If it's not changed, all would have the same color
 	SDL_SetRenderDrawColor(
 		this->renderer,
-		255,
-		255,
-		255,
+		20,
+		20,
+		20,
 		255 // white
 	);
 
@@ -180,4 +180,28 @@ void Game::generateOutput() {
 
 	// swap the buffers
 	SDL_RenderPresent(this->renderer);
+}
+
+
+void Game::updateGame() {
+	// handle the time of the game, so it's possible to update the position of the objects
+	// according to the deltaTime per frame, and not to a quantity of pixels.
+	// In this way, the movement of the objects in the game doesn't depend on the FPS of the game, nor 
+	// in the Hz of the processor
+
+	// frame limiting
+	while (!SDL_TICKS_PASSED(SDL_GetTicks(), this->ticksCount + 16));
+
+	// GetTicks returns the miliseconds elapsed since the Init of the game
+	float deltaTime = (SDL_GetTicks() - this->ticksCount) / 1000.0f;
+
+	// set a maximum for delta time
+	if (deltaTime > 0.05f) {
+		deltaTime = 0.05f;
+	}
+
+	// update so we can calculate the delta time in the next frame
+	this->ticksCount = SDL_GetTicks();
+
+	// Now, update the objects in the game as a function of the delta time
 }
