@@ -1,5 +1,3 @@
-// implementacion de la clase Game
-
 #include "Game.h"
 
 Game::Game() : window(nullptr), isRunning(true) {}
@@ -47,4 +45,38 @@ void Game::runLoop() {
 		updateGame();
 		generateOutput();
 	}
+}
+
+// the events that the user generate in the window are inputs that need to be handled
+// in order to give a response to the user.
+// Every frame of the game can have multiple events and they are all in the queue that SDL implements.
+// We need to handle every event iterating throug all of them in every frame of the game.
+void Game::processInput() {
+    SDL_Event event;
+    
+    // while there are events to process in the queue
+    while (SDL_PollEvent(&event)) {
+        
+        switch (event.type) {
+            // here we handle all the possible events that the user can do
+            // using the event types SDL provides
+            
+            // for example, handling the event of quitting the game
+            case SDL_QUIT:
+                this->isRunning = false;
+                break;
+        }
+    }
+
+    // the user could want to quit the game with the esc key, so we can handle that.
+    // A convinient way to do it is using another function that give us the state of the keyboard.
+    // Instead of handling each key pressing in the swith above, we can do it here
+
+    // an internal array of SDL with the keys that have been pressed
+    const Uint8* state = SDL_GetKeyboardState(NULL);
+
+    // The keys are constants that have this suffix. 1 if they have been pressed.
+    if (state[SDL_SCANCODE_ESCAPE]) {
+    	this->isRunning = false;
+    }
 }
