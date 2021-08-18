@@ -3,16 +3,23 @@
 
 #include "SDL.h"
 
+struct Vector2 {
+	float x;
+	float y;
+};
+
 class Game 
 {
 private:
 	SDL_Window* window;
 	SDL_Renderer* renderer;
 	bool isRunning;
+	Vector2 ballPosition;
+	Vector2 paddlePosition;
 
 	void processInput();
 	void updateGame() {};
-	void generateOutput() {};
+	void generateOutput();
 
 public:
 	// constructor de la clase

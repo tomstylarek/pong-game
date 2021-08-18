@@ -1,6 +1,11 @@
 #include "Game.h"
 
-Game::Game() : window(nullptr), renderer(nullptr), isRunning(true) {}
+Game::Game() : window(nullptr), renderer(nullptr), isRunning(true) {
+	ballPosition.x = 1024 / 2;
+	ballPosition.y = 300;
+	paddlePosition.x = 15; // a bit to the right
+	paddlePosition.y = 300;
+}
 
 // returns true if initialization of SDL and window creation is successful
 bool Game::initialize() {
@@ -20,7 +25,7 @@ bool Game::initialize() {
 		100, // x and y coordinated of the top-left corner of the window
 		100,
 		1024, // size
-		768,
+		600,
 		0 // aditional flags, such as fullscreen mode, rezisable, etc.
 	);
 
@@ -39,7 +44,7 @@ bool Game::initialize() {
 
 	// if the renderer fails to initialize
 	if (!this->renderer) {
-		SDL_Log('Failed to create renderer: %s', SDL_GetError());
+		SDL_Log("Failed to create renderer: %s", SDL_GetError());
 		return false;
 	}
 
@@ -60,6 +65,7 @@ void Game::runLoop() {
 		generateOutput();
 	}
 }
+
 
 // the events that the user generate in the window are inputs that need to be handled
 // in order to give a response to the user.
@@ -93,4 +99,85 @@ void Game::processInput() {
     if (state[SDL_SCANCODE_ESCAPE]) {
     	this->isRunning = false;
     }
+}
+
+
+// We have two buffers in a game. One from where the display takes the information to display on the window
+// and the other where the game updates the game scene. 
+// This function should clear the back buffer to a color (the game's buffer), draw the game scene, and last,
+// swap buffers between the front buffer and the back buffer. 
+void Game::generateOutput() {
+	// first, set the renderer draw color
+	SDL_SetRenderDrawColor(
+		this->renderer,
+		0, // R
+		0, // G
+		255, // B
+		255 // A - A blue color with full opacity
+	);
+
+	// clear the back buffer to the current draw color
+	SDL_RenderClear(this->renderer);
+
+	// -- draw the game scene --
+
+	// change the drawing color. This is like a global color for all objects.
+	// If it's not changed, all would have the same color
+	SDL_SetRenderDrawColor(
+		this->renderer,
+		255,
+		255,
+		255,
+		255 // white
+	);
+
+	// create the walls of the game, so the ball can hit them and bounce
+	// for now it's just one player, so we need three walls
+	SDL_Rect topWall {
+		0, // x y coordinates on the window
+		0,
+		1024, // size of the rectangle
+		15
+	};
+
+	SDL_Rect bottomWall {
+		0,
+		600 - 15,
+		1024,
+		15
+	};
+
+	SDL_Rect rightWall {
+		1024 - 15,
+		0,
+		15,
+		600
+	};
+
+	// create the ball and the paddel
+
+	// note that the position of the ball references its center, and the parameter takes the top left corner
+	SDL_Rect ball {
+		static_cast<int>(this->ballPosition.x - 15 / 2),
+		static_cast<int>(this->ballPosition.y - 15 / 2),
+		15,
+		15
+	};
+
+	SDL_Rect paddle {
+		static_cast<int>(this->paddlePosition.x - 15 / 2),
+		static_cast<int>(this->paddlePosition.y - 80 / 2),
+		15,
+		80
+	};
+
+	// render all
+	SDL_RenderFillRect(this->renderer, &topWall);
+	SDL_RenderFillRect(this->renderer, &bottomWall);
+	SDL_RenderFillRect(this->renderer, &rightWall);
+	SDL_RenderFillRect(this->renderer, &ball);
+	SDL_RenderFillRect(this->renderer, &paddle);
+
+	// swap the buffers
+	SDL_RenderPresent(this->renderer);
 }
