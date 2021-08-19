@@ -1,10 +1,27 @@
 #include "Game.h"
+#include <stdlib.h>
+#include <time.h>
 
-Game::Game() : window(nullptr), renderer(nullptr), isRunning(true), ticksCount(0) {
-	ballPosition.x = 1024 / 2;
-	ballPosition.y = 300;
-	paddlePosition.x = 15; // a bit to the right
-	paddlePosition.y = 300;
+
+const int windowWidth = 1024;
+const int windowHeight = 600;
+const int thickness = 15;
+const int paddleHeight = 100;
+
+Game::Game() : window(nullptr), renderer(nullptr), isRunning(true), ticksCount(0), paddleDirection(0) {
+	this->ballPosition.x = windowWidth / 2;
+	this->ballPosition.y = windowHeight / 2;
+	this->paddlePosition.x = 15.0f; // a bit to the right
+	this->paddlePosition.y = windowHeight / 2.0f;
+
+
+	// randomize the initial direction of the ball when the game starts
+	srand(time(NULL));
+	const int xDir = rand() % 2 == 0 ? -1 : 1;
+	const int yDir = rand() % 2 == 0 ? -1 : 1;
+
+	this->ballVelocity.x = xDir * 200.0f;
+	this->ballVelocity.y = yDir * 235.0f;
 }
 
 // returns true if initialization of SDL and window creation is successful
@@ -24,8 +41,8 @@ bool Game::initialize() {
 		"Pong", // window title
 		100, // x and y coordinated of the top-left corner of the window
 		100,
-		1024, // size
-		600,
+		windowWidth, // size
+		windowHeight,
 		0 // aditional flags, such as fullscreen mode, rezisable, etc.
 	);
 
@@ -99,6 +116,20 @@ void Game::processInput() {
     if (state[SDL_SCANCODE_ESCAPE]) {
     	this->isRunning = false;
     }
+
+    // handle the input for moving the paddle
+    // in this case, w for moving the paddle up, and s for moving it down
+    this->paddleDirection = 0;
+
+    // -1 represents the negative y direction, that is, moving up, and 1 moving down
+    // adding and substracting makes that, if the user presses both keys, the paddle won't move
+    if (state[SDL_SCANCODE_UP]) {
+    	this->paddleDirection -= 1;
+    }
+
+    if (state[SDL_SCANCODE_DOWN]) {
+    	this->paddleDirection += 1;
+    }
 }
 
 
@@ -136,39 +167,39 @@ void Game::generateOutput() {
 	SDL_Rect topWall {
 		0, // x y coordinates on the window
 		0,
-		1024, // size of the rectangle
-		15
+		windowWidth, // size of the rectangle
+		thickness
 	};
 
 	SDL_Rect bottomWall {
 		0,
-		600 - 15,
-		1024,
-		15
+		windowHeight - thickness,
+		windowWidth,
+		thickness
 	};
 
 	SDL_Rect rightWall {
-		1024 - 15,
+		windowWidth - thickness,
 		0,
-		15,
-		600
+		thickness,
+		windowHeight
 	};
 
 	// create the ball and the paddel
 
 	// note that the position of the ball references its center, and the parameter takes the top left corner
 	SDL_Rect ball {
-		static_cast<int>(this->ballPosition.x - 15 / 2),
-		static_cast<int>(this->ballPosition.y - 15 / 2),
-		15,
-		15
+		static_cast<int>(this->ballPosition.x - thickness / 2),
+		static_cast<int>(this->ballPosition.y - thickness / 2),
+		thickness,
+		thickness
 	};
 
 	SDL_Rect paddle {
-		static_cast<int>(this->paddlePosition.x - 15 / 2),
-		static_cast<int>(this->paddlePosition.y - 80 / 2),
-		15,
-		80
+		static_cast<int>(this->paddlePosition.x - thickness / 2),
+		static_cast<int>(this->paddlePosition.y - paddleHeight / 2),
+		thickness,
+		paddleHeight
 	};
 
 	// render all
@@ -204,4 +235,54 @@ void Game::updateGame() {
 	this->ticksCount = SDL_GetTicks();
 
 	// Now, update the objects in the game as a function of the delta time
+
+	// if the user is pressing w or s, the event will handle in processInput
+	// and we recieve here -1 or 1 depending on the direction of the movement
+	if (this->paddleDirection != 0) {
+
+		// velocity of 300 pixels per second
+		this->paddlePosition.y += this->paddleDirection * 300.0f * deltaTime;
+
+		// control of the paddle position so it won't get off screen
+		if (this->paddlePosition.y < (paddleHeight / 2.0f + thickness)) {
+			this->paddlePosition.y = paddleHeight / 2.0f + thickness;
+		} else if (this->paddlePosition.y > (windowHeight - paddleHeight / 2.0f - thickness)) {
+			this->paddlePosition.y = windowHeight - paddleHeight / 2.0f - thickness;
+		}
+	}
+
+	// update ball position
+	this->ballPosition.x += this->ballVelocity.x * deltaTime;
+	this->ballPosition.y += this->ballVelocity.y * deltaTime;
+
+	// if the ball collides with the walls, change the direction of movement accordingly
+
+	// if it collides and it's moving upwards
+	if (this->ballPosition.y <= thickness / 2.0f + thickness && this->ballVelocity.y < 0) {
+		// invert the direction
+		this->ballVelocity.y = -this->ballVelocity.y;
+	} else if (this->ballPosition.y > windowHeight - thickness / 2.0f - thickness && this->ballVelocity.y > 0) {
+		this->ballVelocity.y = -this->ballVelocity.y;
+	}
+
+	if (this->ballPosition.x > windowWidth - thickness / 2.0f - thickness && this->ballVelocity.x > 0) {
+		this->ballVelocity.x = -this->ballVelocity.x;
+	}
+
+	// handle collision of the ball with the paddle
+	int dif = abs(this->ballPosition.y - this->paddlePosition.y);
+	if (
+		// x aligning with the paddle
+		this->ballPosition.x <= 2 * thickness && this->ballPosition.x >= thickness + thickness / 2 && 
+		this->ballVelocity.x < 0 &&    // ball is moving to the paddle
+		dif <= paddleHeight / 2 + thickness / 2    // it doesn't touch the paddle
+	) {
+		this->ballVelocity.x = -this->ballVelocity.x;
+	}
+
+
+	// handle ball off screen
+	if (this->ballPosition.x <= 0) {
+		this->isRunning = false;
+	}
 }

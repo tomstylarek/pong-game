@@ -15,8 +15,10 @@ private:
 	SDL_Renderer* renderer;
 	bool isRunning;
 	Vector2 ballPosition;
+	Vector2 ballVelocity;
 	Vector2 paddlePosition;
 	Uint32 ticksCount;
+	int paddleDirection;
 
 	void processInput();
 	void updateGame();
