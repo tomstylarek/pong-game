@@ -16,9 +16,12 @@ private:
 	bool isRunning;
 	Vector2 ballPosition;
 	Vector2 ballVelocity;
-	Vector2 paddlePosition;
+	Vector2 paddle1Position;
+	Vector2 paddle2Position;
+	int paddle1Direction;
+	int paddle2Direction;
 	Uint32 ticksCount;
-	int paddleDirection;
+	
 
 	void processInput();
 	void updateGame();

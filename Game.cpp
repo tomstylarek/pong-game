@@ -8,11 +8,13 @@ const int windowHeight = 600;
 const int thickness = 15;
 const int paddleHeight = 100;
 
-Game::Game() : window(nullptr), renderer(nullptr), isRunning(true), ticksCount(0), paddleDirection(0) {
+Game::Game() : window(nullptr), renderer(nullptr), isRunning(true), ticksCount(0), paddle1Direction(0), paddle2Direction(0) {
 	this->ballPosition.x = windowWidth / 2;
 	this->ballPosition.y = windowHeight / 2;
-	this->paddlePosition.x = 15.0f; // a bit to the right
-	this->paddlePosition.y = windowHeight / 2.0f;
+	this->paddle1Position.x = 15.0f; // a bit to the right
+	this->paddle1Position.y = windowHeight / 2.0f;
+	this->paddle2Position.x = windowWidth - 15.0f;
+	this->paddle2Position.y = windowHeight / 2.0f;
 
 
 	// randomize the initial direction of the ball when the game starts
@@ -20,7 +22,7 @@ Game::Game() : window(nullptr), renderer(nullptr), isRunning(true), ticksCount(0
 	const int xDir = rand() % 2 == 0 ? -1 : 1;
 	const int yDir = rand() % 2 == 0 ? -1 : 1;
 
-	this->ballVelocity.x = xDir * 200.0f;
+	this->ballVelocity.x = xDir * 250.0f;
 	this->ballVelocity.y = yDir * 235.0f;
 }
 
@@ -77,9 +79,9 @@ void Game::shutDown() {
 void Game::runLoop() {
 
 	while (this->isRunning) {
-		processInput();
-		updateGame();
-		generateOutput();
+		this->processInput();
+		this->updateGame();
+		this->generateOutput();
 	}
 }
 
@@ -119,16 +121,25 @@ void Game::processInput() {
 
     // handle the input for moving the paddle
     // in this case, w for moving the paddle up, and s for moving it down
-    this->paddleDirection = 0;
+    this->paddle1Direction = 0;
+    this->paddle2Direction = 0;
 
     // -1 represents the negative y direction, that is, moving up, and 1 moving down
     // adding and substracting makes that, if the user presses both keys, the paddle won't move
+    if (state[SDL_SCANCODE_W]) {
+    	this->paddle1Direction -= 1;
+    }
+
+    if (state[SDL_SCANCODE_S]) {
+    	this->paddle1Direction += 1;
+    }
+
     if (state[SDL_SCANCODE_UP]) {
-    	this->paddleDirection -= 1;
+    	this->paddle2Direction -= 1;
     }
 
     if (state[SDL_SCANCODE_DOWN]) {
-    	this->paddleDirection += 1;
+    	this->paddle2Direction += 1;
     }
 }
 
@@ -178,13 +189,6 @@ void Game::generateOutput() {
 		thickness
 	};
 
-	SDL_Rect rightWall {
-		windowWidth - thickness,
-		0,
-		thickness,
-		windowHeight
-	};
-
 	// create the ball and the paddel
 
 	// note that the position of the ball references its center, and the parameter takes the top left corner
@@ -195,9 +199,16 @@ void Game::generateOutput() {
 		thickness
 	};
 
-	SDL_Rect paddle {
-		static_cast<int>(this->paddlePosition.x - thickness / 2),
-		static_cast<int>(this->paddlePosition.y - paddleHeight / 2),
+	SDL_Rect paddle1 {
+		static_cast<int>(this->paddle1Position.x - thickness / 2),
+		static_cast<int>(this->paddle1Position.y - paddleHeight / 2),
+		thickness,
+		paddleHeight
+	};
+
+	SDL_Rect paddle2 {
+		static_cast<int>(this->paddle2Position.x - thickness / 2),
+		static_cast<int>(this->paddle2Position.y - paddleHeight / 2),
 		thickness,
 		paddleHeight
 	};
@@ -205,9 +216,9 @@ void Game::generateOutput() {
 	// render all
 	SDL_RenderFillRect(this->renderer, &topWall);
 	SDL_RenderFillRect(this->renderer, &bottomWall);
-	SDL_RenderFillRect(this->renderer, &rightWall);
 	SDL_RenderFillRect(this->renderer, &ball);
-	SDL_RenderFillRect(this->renderer, &paddle);
+	SDL_RenderFillRect(this->renderer, &paddle1);
+	SDL_RenderFillRect(this->renderer, &paddle2);
 
 	// swap the buffers
 	SDL_RenderPresent(this->renderer);
@@ -238,18 +249,32 @@ void Game::updateGame() {
 
 	// if the user is pressing w or s, the event will handle in processInput
 	// and we recieve here -1 or 1 depending on the direction of the movement
-	if (this->paddleDirection != 0) {
+	if (this->paddle1Direction != 0) {
 
 		// velocity of 300 pixels per second
-		this->paddlePosition.y += this->paddleDirection * 300.0f * deltaTime;
+		this->paddle1Position.y += this->paddle1Direction * 300.0f * deltaTime;
 
 		// control of the paddle position so it won't get off screen
-		if (this->paddlePosition.y < (paddleHeight / 2.0f + thickness)) {
-			this->paddlePosition.y = paddleHeight / 2.0f + thickness;
-		} else if (this->paddlePosition.y > (windowHeight - paddleHeight / 2.0f - thickness)) {
-			this->paddlePosition.y = windowHeight - paddleHeight / 2.0f - thickness;
+		if (this->paddle1Position.y < (paddleHeight / 2.0f + thickness)) {
+			this->paddle1Position.y = paddleHeight / 2.0f + thickness;
+		} else if (this->paddle1Position.y > (windowHeight - paddleHeight / 2.0f - thickness)) {
+			this->paddle1Position.y = windowHeight - paddleHeight / 2.0f - thickness;
 		}
 	}
+
+	if (this->paddle2Direction != 0) {
+
+		// velocity of 300 pixels per second
+		this->paddle2Position.y += this->paddle2Direction * 300.0f * deltaTime;
+
+		// control of the paddle position so it won't get off screen
+		if (this->paddle2Position.y < (paddleHeight / 2.0f + thickness)) {
+			this->paddle2Position.y = paddleHeight / 2.0f + thickness;
+		} else if (this->paddle2Position.y > (windowHeight - paddleHeight / 2.0f - thickness)) {
+			this->paddle2Position.y = windowHeight - paddleHeight / 2.0f - thickness;
+		}
+	}
+
 
 	// update ball position
 	this->ballPosition.x += this->ballVelocity.x * deltaTime;
@@ -265,24 +290,32 @@ void Game::updateGame() {
 		this->ballVelocity.y = -this->ballVelocity.y;
 	}
 
-	if (this->ballPosition.x > windowWidth - thickness / 2.0f - thickness && this->ballVelocity.x > 0) {
-		this->ballVelocity.x = -this->ballVelocity.x;
-	}
+	// handle collision of the ball both paddles
+	int dif1 = abs(this->ballPosition.y - this->paddle1Position.y);
+	int dif2 = abs(this->ballPosition.y - this->paddle2Position.y);
 
-	// handle collision of the ball with the paddle
-	int dif = abs(this->ballPosition.y - this->paddlePosition.y);
 	if (
 		// x aligning with the paddle
 		this->ballPosition.x <= 2 * thickness && this->ballPosition.x >= thickness + thickness / 2 && 
 		this->ballVelocity.x < 0 &&    // ball is moving to the paddle
-		dif <= paddleHeight / 2 + thickness / 2    // it doesn't touch the paddle
+		dif1 <= paddleHeight / 2 + thickness / 2    // it doesn't touch the paddle
 	) {
-		this->ballVelocity.x = -this->ballVelocity.x;
+		// randomize velocity up to 2x
+		this->ballVelocity.x = -this->ballVelocity.x * (1 + 0.2f * ((float) rand()) / (float) RAND_MAX);
+		// change sign of direction in y
+		this->ballVelocity.y = rand() % 2 == 0 ? -1 : 1 * 235.0f;
+	} else if (
+		this->ballPosition.x >= windowWidth - 2 * thickness && this->ballPosition.x <= windowWidth - (thickness + thickness / 2) && 
+		this->ballVelocity.x > 0 &&    
+		dif2 <= paddleHeight / 2 + thickness / 2    
+	) {
+		this->ballVelocity.x = -this->ballVelocity.x * (1 + 0.2f * ((float) rand()) / (float) RAND_MAX);
+		this->ballVelocity.y = rand() % 2 == 0 ? -1 : 1 * 235.0f;
 	}
 
 
 	// handle ball off screen
-	if (this->ballPosition.x <= 0) {
+	if (this->ballPosition.x <= 0 || this->ballPosition.x >= windowWidth) {
 		this->isRunning = false;
 	}
 }
